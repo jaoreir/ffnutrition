@@ -71,7 +71,7 @@ public class FFNutritionMod
         double realMaxHealth = maxHealthAttribute.getValue();
         if (player.getHealth() > realMaxHealth)
         {
-            player.setHealth((float) maxHealth);
+            player.setHealth((float) realMaxHealth);
         }
     }
 
