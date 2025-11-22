@@ -19,37 +19,19 @@ public class NutritionData implements INBTSerializable<CompoundTag>
     private static final double NUTRITION_CATEGORY_VALUE_MAX = 100.0;
 
     private double nutritionScore;
-    private Map<String, Double> nutritionValueCollection = new HashMap<>();
-
-    private boolean isInitialized = false;
+    private final Map<String, Double> nutritionValueCollection = new HashMap<>();
 
     public NutritionData()
     {
-        Init();
-    }
-
-    public void Init()
-    {
-        if (isInitialized)
-        {
-            return;
-        }
-        isInitialized = true;
-
-        nutritionValueCollection = new HashMap<>();
-
         double currentScore = 0.0;
 
-
         int maxEntries = FFNutritionItemDataLoader.getNutritionCategories().size();
-
         for (String entry : FFNutritionItemDataLoader.getNutritionCategories())
         {
             double categoryScore = FFNutritionConfigCommon.INITIAL_SCORE.get();
             nutritionValueCollection.put(entry, categoryScore);
             currentScore += categoryScore;
         }
-
         nutritionScore = currentScore / (NUTRITION_CATEGORY_VALUE_MAX * maxEntries);
     }
 
@@ -61,6 +43,15 @@ public class NutritionData implements INBTSerializable<CompoundTag>
     public double getNutritionScore()
     {
         return nutritionScore;
+    }
+
+    public long evalMaxHealth()
+    {
+        double score = getNutritionScore();
+        double min = FFNutritionConfigCommon.MIN_HEALTH.get();
+        double max = Math.max(min, FFNutritionConfigCommon.MAX_HEALTH.get());
+        double health = min + (max - min) * score;
+        return Math.round(health / 2.0) * 2L;
     }
 
     public double getCategoryValue(String category)
@@ -94,7 +85,7 @@ public class NutritionData implements INBTSerializable<CompoundTag>
 
     public void addValuesToOrderedCategories(double[] nutritionInfo)
     {
-        List<String> nutritionCategories =  new ArrayList<>(FFNutritionItemDataLoader.getNutritionCategories());
+        List<String> nutritionCategories = new ArrayList<>(FFNutritionItemDataLoader.getNutritionCategories());
         for (int i = 0; i < nutritionCategories.size(); i++)
         {
             if (i >= nutritionInfo.length)
@@ -140,8 +131,7 @@ public class NutritionData implements INBTSerializable<CompoundTag>
                     category,
                     newValue
                 );
-        }
-        else
+        } else
         {
             // key not found, add category?
         }
@@ -160,12 +150,11 @@ public class NutritionData implements INBTSerializable<CompoundTag>
             amount = Math.clamp(amount, 0.0, NUTRITION_CATEGORY_VALUE_MAX);
 
             nutritionValueCollection.put
-                    (
-                            category,
-                            amount
-                    );
-        }
-        else
+                (
+                    category,
+                    amount
+                );
+        } else
         {
             // key not found, add category?
         }
@@ -218,32 +207,37 @@ public class NutritionData implements INBTSerializable<CompoundTag>
     }
 
     public static final StreamCodec<FriendlyByteBuf, NutritionData> STREAM_CODEC =
-            StreamCodec.of(
-                    (buf, data) -> { // encode
-                        Map<String, Double> map = data.getNutritionValueCollection();
-                        buf.writeInt(map.size()); // write map size
-                        for (Map.Entry<String, Double> entry : map.entrySet()) {
-                            buf.writeUtf(entry.getKey()); // write key
-                            buf.writeDouble(entry.getValue()); // write value
-                        }
-                    },
-                    buf -> { // decode
-                        int size = buf.readInt();
-                        Map<String, Double> map = new HashMap<>();
-                        for (int i = 0; i < size; i++) {
-                            String key = buf.readUtf();
-                            double value = buf.readDouble();
-                            map.put(key, value);
-                        }
-                        NutritionData data = new NutritionData();
-                        data.setNutritionValueCollection(map);
-                        return data;
-                    }
-            );
+        StreamCodec.of(
+            (buf, data) ->
+            { // encode
+                Map<String, Double> map = data.getNutritionValueCollection();
+                buf.writeInt(map.size()); // write map size
+                for (Map.Entry<String, Double> entry : map.entrySet())
+                {
+                    buf.writeUtf(entry.getKey()); // write key
+                    buf.writeDouble(entry.getValue()); // write value
+                }
+            },
+            buf ->
+            { // decode
+                int size = buf.readInt();
+                Map<String, Double> map = new HashMap<>();
+                for (int i = 0; i < size; i++)
+                {
+                    String key = buf.readUtf();
+                    double value = buf.readDouble();
+                    map.put(key, value);
+                }
+                NutritionData data = new NutritionData();
+                data.setNutritionValueCollection(map);
+                return data;
+            }
+        );
 
     public void setNutritionValueCollection(Map<String, Double> map)
     {
-        if (map == null) {
+        if (map == null)
+        {
             this.nutritionValueCollection.clear();
             return;
         }
@@ -278,15 +272,15 @@ public class NutritionData implements INBTSerializable<CompoundTag>
         for (String category : FFNutritionItemDataLoader.getNutritionCategories())
         {
             double value = tag.contains(category)
-                    ? tag.getDouble(category)
-                    : FFNutritionConfigCommon.INITIAL_SCORE.get();
+                ? tag.getDouble(category)
+                : FFNutritionConfigCommon.INITIAL_SCORE.get();
 
             value = Math.clamp(value, 0.0, NUTRITION_CATEGORY_VALUE_MAX);
             nutritionValueCollection.put(category, value);
         }
 
         nutritionScore = tag.contains("NutritionScore")
-                ? tag.getDouble("NutritionScore")
-                : computeNutritionScore();
+            ? tag.getDouble("NutritionScore")
+            : computeNutritionScore();
     }
 }

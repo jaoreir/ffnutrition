@@ -53,7 +53,7 @@ public class FFNutritionMod
     public static void updatePlayerHealth(ServerPlayer player)
     {
         NutritionData data = getNutritionData(player);
-        long maxHealth = calculateMaxHealth(data);
+        long maxHealth = data.evalMaxHealth();
         AttributeInstance maxHealthAttribute = player.getAttribute(Attributes.MAX_HEALTH);
         maxHealthAttribute.setBaseValue(maxHealth);
 
@@ -63,15 +63,6 @@ public class FFNutritionMod
         {
             player.setHealth((float) realMaxHealth);
         }
-    }
-
-    private static long calculateMaxHealth(NutritionData data)
-    {
-        double score = data.getNutritionScore();
-        double min = FFNutritionConfigCommon.MIN_HEALTH.get();
-        double max = Math.max(min, FFNutritionConfigCommon.MAX_HEALTH.get());
-        double health = min + (max - min) * score;
-        return Math.round(health / 2.0) * 2L;
     }
 
 
