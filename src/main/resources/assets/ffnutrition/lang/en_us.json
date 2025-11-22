@@ -17,5 +17,9 @@
   "ffnutrition.configuration.saturationModifier": "Saturation Multiplier",
   "ffnutrition.configuration.useItemNutritionFallback": "Use Fallback Nutrition",
   "ffnutrition.configuration.defaultNutritionFallback": "Fallback Nutrition",
-  "ffnutrition.configuration.itemNutrition": "Specific Item Nutrition"
+  "ffnutrition.configuration.itemNutrition": "Specific Item Nutrition",
+  "ffnutrition.message.nutrition.high": "You are quite satiated.",
+  "ffnutrition.message.nutrition.medium": "You're decently satiated.",
+  "ffnutrition.message.nutrition.low": "You should diversify your diet.",
+  "ffnutrition.message.nutrition.lacking": "You are lacking: "
 }

@@ -17,6 +17,8 @@ import java.util.Map;
 
 @EventBusSubscriber(modid = FFNutritionMod.MODID)
 public class FFNutritionCommands {
+    private final static double LACKING_THRESHOLD = 40.0;
+
     @SubscribeEvent
     public static void registerCommands(RegisterCommandsEvent event) {
 
@@ -223,34 +225,35 @@ public class FFNutritionCommands {
         );
     }
 
-    private static void tellPlayerNutritionStatusVague(CommandContext<CommandSourceStack> context, ServerPlayer target) {
+    private static void tellPlayerNutritionStatusVague(CommandContext<CommandSourceStack> context,
+                                                       ServerPlayer target) {
         NutritionData data = FFNutritionMod.getNutritionData(target);
 
         StringBuilder line = new StringBuilder();
         if (data.getNutritionScore() >= 0.8) {
-            line.append("You're quite satiated.");
+            line.append(Component.translatable("ffnutrition.message.nutrition.high").getString());
         } else if (data.getNutritionScore() >= 0.5) {
-            line.append("You're decently satiated.");
+            line.append(Component.translatable("ffnutrition.message.nutrition.medium").getString());
         } else {
-            line.append("You should diversify your diet.");
+            line.append(Component.translatable("ffnutrition.message.nutrition.low").getString());
         }
 
-        boolean hasNeeded = false;
+        boolean hasLackingNutrient = false;
         int index = 0;
         for (Map.Entry<String, Double> entry : data.getNutritionValueCollection().entrySet()) {
             String key = entry.getKey();
             Double value = entry.getValue();
-            if (value <= 40.0) {
-                if (!hasNeeded) {
-                    hasNeeded = true;
-                    line.append(" You're lacking ");
+            if (value <= LACKING_THRESHOLD) {
+                if (!hasLackingNutrient) {
+                    hasLackingNutrient = true;
+                    line.append(" ")
+                        .append(Component.translatable("ffnutrition.message.nutrition.lacking").getString());
                 }
                 if (index == data.getNutritionValueCollection().size() - 1) {
                     line.append(key).append(".");
                 } else {
                     line.append(key).append(", ");
                 }
-
             }
             index++;
         }
