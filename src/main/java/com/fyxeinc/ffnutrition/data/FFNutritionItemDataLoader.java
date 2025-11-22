@@ -1,6 +1,7 @@
 package com.fyxeinc.ffnutrition.data;
 
 import com.fyxeinc.ffnutrition.FFNutritionEvents;
+import com.fyxeinc.ffnutrition.FFNutritionMod;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -15,10 +16,8 @@ import org.jetbrains.annotations.NotNull;
 import com.google.gson.Gson;
 
 import java.io.BufferedReader;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class FFNutritionItemDataLoader extends SimpleJsonResourceReloadListener
 {
@@ -35,14 +34,15 @@ public class FFNutritionItemDataLoader extends SimpleJsonResourceReloadListener
 
     @Override
     protected void apply(@NotNull Map<ResourceLocation, JsonElement> elements,
-                         @NotNull ResourceManager resourceManager,
-                         @NotNull ProfilerFiller profiler)
+        @NotNull ResourceManager resourceManager,
+        @NotNull ProfilerFiller profiler)
     {
         // Load nutrition category definitions
         NUTRITION_CATEGORIES.clear();
         try
         {
-            ResourceLocation categoriesLoc = ResourceLocation.fromNamespaceAndPath("ffnutrition", "nutrition_categories.json");
+            ResourceLocation categoriesLoc = ResourceLocation.fromNamespaceAndPath("ffnutrition",
+                "nutrition_categories.json");
             resourceManager.getResource(categoriesLoc).ifPresent(resource ->
             {
                 try (BufferedReader reader = resource.openAsReader())
@@ -53,43 +53,63 @@ public class FFNutritionItemDataLoader extends SimpleJsonResourceReloadListener
                     {
                         NUTRITION_CATEGORIES.add(e.getAsString());
                     }
-                }
-                catch (Exception e)
+                } catch (Exception e)
                 {
-                    System.err.println("[FFNutrition] Failed to load nutrition_categories.json: " + e);
+                    FFNutritionMod.LOGGER.error("[FFNutrition] Failed to load nutrition_categories.json: {}",
+                        String.valueOf(e));
                 }
             });
-        }
-        catch (Exception ignored)
+        } catch (Exception ignored)
         {
             // Not required — fallback if file is missing
         }
 
-
         // Load item nutrition data
         ITEM_NUTRITION_MAP.clear();
 
+        // Cache item namespaces to speed up lookup
+        Set<String> namespaces = BuiltInRegistries.ITEM.keySet().stream()
+            .map(ResourceLocation::getNamespace)
+            .collect(Collectors.toSet());
+
         for (Map.Entry<ResourceLocation, JsonElement> entry : elements.entrySet())
         {
-            JsonObject obj = GsonHelper.convertToJsonObject(entry.getValue(), "item_nutrition");
-            String itemId = GsonHelper.getAsString(obj, "item");
-            JsonArray valuesArray = GsonHelper.getAsJsonArray(obj, "values");
+            // Parse item ID
+            // Location should be ffnutrition:<mod_id>/<item_id>
+            String[] parts = entry.getKey().getPath().split("/");
+            if (parts.length != 2)
+            {
+                FFNutritionMod.LOGGER.warn("Invalid nutrition data path: {}", entry.getKey());
+                continue;
+            }
 
+            // Early return if namespace doesn't exist
+            if (!namespaces.contains(parts[0]))
+            {
+                continue;
+            }
+
+            // Find the item in registry
+            ResourceLocation itemId = ResourceLocation.fromNamespaceAndPath(parts[0], parts[1]);
+            if (!BuiltInRegistries.ITEM.containsKey(itemId))
+            {
+                //FFNutritionMod.LOGGER.warn("Item {} does not exist. Skipping.", itemId);
+                continue;
+            }
+            Item item = BuiltInRegistries.ITEM.get(itemId);
+
+            // Save nutrition values of item to map
+            JsonObject obj = GsonHelper.convertToJsonObject(entry.getValue(), "item_nutrition");
+            JsonArray valuesArray = GsonHelper.getAsJsonArray(obj, "values");
             double[] values = new double[valuesArray.size()];
             for (int i = 0; i < valuesArray.size(); i++)
             {
                 values[i] = valuesArray.get(i).getAsDouble();
             }
-
-            Item item = BuiltInRegistries.ITEM.get(ResourceLocation.parse(itemId));
-            if (item != null)
-            {
-                ITEM_NUTRITION_MAP.put(item, values);
-            }
+            ITEM_NUTRITION_MAP.put(item, values);
         }
 
-        System.out.println("Loaded " + ITEM_NUTRITION_MAP.size() + " item nutrition entries");
-
+        FFNutritionMod.LOGGER.info("Loaded " + ITEM_NUTRITION_MAP.size() + " item nutrition entries");
         FFNutritionEvents.cacheItemNutritionInfo(true);
     }
 
