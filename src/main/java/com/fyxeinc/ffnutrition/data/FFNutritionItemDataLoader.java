@@ -65,6 +65,7 @@ public class FFNutritionItemDataLoader extends SimpleJsonResourceReloadListener
         }
 
         // Load item nutrition data
+        int categoryCount = NUTRITION_CATEGORIES.size();
         ITEM_NUTRITION_MAP.clear();
 
         // Cache item namespaces to speed up lookup
@@ -98,7 +99,7 @@ public class FFNutritionItemDataLoader extends SimpleJsonResourceReloadListener
             }
             Item item = BuiltInRegistries.ITEM.get(itemId);
 
-            // Save nutrition values of item to map
+            // Parse nutrition values
             JsonObject obj = GsonHelper.convertToJsonObject(entry.getValue(), "item_nutrition");
             JsonArray valuesArray = GsonHelper.getAsJsonArray(obj, "values");
             double[] values = new double[valuesArray.size()];
@@ -106,6 +107,17 @@ public class FFNutritionItemDataLoader extends SimpleJsonResourceReloadListener
             {
                 values[i] = valuesArray.get(i).getAsDouble();
             }
+
+            // Validate length
+            if (values.length != categoryCount)
+            {
+                FFNutritionMod.LOGGER.error(
+                    "Item \"{}\" has the wrong number of nutrition values. Expecting {} but got {}.",
+                    itemId, categoryCount, values.length);
+                continue;
+            }
+
+            // Save nutrition values
             ITEM_NUTRITION_MAP.put(item, values);
         }
 
