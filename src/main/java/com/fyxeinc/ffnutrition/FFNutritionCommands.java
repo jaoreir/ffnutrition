@@ -3,6 +3,7 @@ package com.fyxeinc.ffnutrition;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.DoubleArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
+import com.mojang.brigadier.context.CommandContext;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.arguments.EntityArgument;
@@ -23,43 +24,24 @@ public class FFNutritionCommands {
 
         dispatcher.register(
             Commands.literal("ffnutrition")
+                .executes(context -> {
+                    ServerPlayer player = context.getSource().getPlayer();
+                    if (player == null) {
+                        return 0;
+                    }
+                    tellPlayerNutritionStatusVague(context, player);
+                    return 1;
+                })
+        );
+
+        dispatcher.register(
+            Commands.literal("ffnutrition")
                 .then(Commands.literal("getNutritionDataVague")
                     .then(Commands.argument("target", EntityArgument.player())
                         .executes(context ->
                         {
                             ServerPlayer target = EntityArgument.getPlayer(context, "target");
-                            NutritionData data = FFNutritionMod.getNutritionData(target);
-
-                            StringBuilder line = new StringBuilder();
-                            if (data.getNutritionScore() >= 0.8) {
-                                line.append("You're quite satiated.");
-                            } else if (data.getNutritionScore() >= 0.5) {
-                                line.append("You're decently satiated.");
-                            } else {
-                                line.append("You should diversify your diet.");
-                            }
-
-                            boolean hasNeeded = false;
-                            int index = 0;
-                            for (Map.Entry<String, Double> entry : data.getNutritionValueCollection().entrySet()) {
-                                String key = entry.getKey();
-                                Double value = entry.getValue();
-                                if (value <= 40.0) {
-                                    if (!hasNeeded) {
-                                        hasNeeded = true;
-                                        line.append(" You're lacking ");
-                                    }
-                                    if (index == data.getNutritionValueCollection().size() - 1) {
-                                        line.append(key).append(".");
-                                    } else {
-                                        line.append(key).append(", ");
-                                    }
-
-                                }
-                                index++;
-                            }
-                            final String message = line.toString();
-                            context.getSource().sendSuccess(() -> Component.literal(message), false);
+                            tellPlayerNutritionStatusVague(context, target);
                             return 1;
                         })
                     )
@@ -87,7 +69,6 @@ public class FFNutritionCommands {
                                 String key = entry.getKey();
                                 Double value = entry.getValue();
                                 int newIndex = index;
-                                //System.out.println(key + " = " + value);
                                 context.getSource()
                                     .sendSuccess(() -> Component.literal(
                                         String.format("%d) %s: %.6f", newIndex, key, value)), false);
@@ -240,5 +221,40 @@ public class FFNutritionCommands {
                     )
                 )
         );
+    }
+
+    private static void tellPlayerNutritionStatusVague(CommandContext<CommandSourceStack> context, ServerPlayer target) {
+        NutritionData data = FFNutritionMod.getNutritionData(target);
+
+        StringBuilder line = new StringBuilder();
+        if (data.getNutritionScore() >= 0.8) {
+            line.append("You're quite satiated.");
+        } else if (data.getNutritionScore() >= 0.5) {
+            line.append("You're decently satiated.");
+        } else {
+            line.append("You should diversify your diet.");
+        }
+
+        boolean hasNeeded = false;
+        int index = 0;
+        for (Map.Entry<String, Double> entry : data.getNutritionValueCollection().entrySet()) {
+            String key = entry.getKey();
+            Double value = entry.getValue();
+            if (value <= 40.0) {
+                if (!hasNeeded) {
+                    hasNeeded = true;
+                    line.append(" You're lacking ");
+                }
+                if (index == data.getNutritionValueCollection().size() - 1) {
+                    line.append(key).append(".");
+                } else {
+                    line.append(key).append(", ");
+                }
+
+            }
+            index++;
+        }
+        final String message = line.toString();
+        context.getSource().sendSuccess(() -> Component.literal(message), false);
     }
 }
