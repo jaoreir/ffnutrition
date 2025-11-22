@@ -15,11 +15,9 @@ import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import java.util.Map;
 
 @EventBusSubscriber(modid = FFNutritionMod.MODID)
-public class FFNutritionCommands
-{
+public class FFNutritionCommands {
     @SubscribeEvent
-    public static void registerCommands(RegisterCommandsEvent event)
-    {
+    public static void registerCommands(RegisterCommandsEvent event) {
 
         CommandDispatcher<CommandSourceStack> dispatcher = event.getDispatcher();
 
@@ -32,43 +30,35 @@ public class FFNutritionCommands
                             ServerPlayer target = EntityArgument.getPlayer(context, "target");
                             NutritionData data = FFNutritionMod.getNutritionData(target);
 
-                            String line = "";
-                            if (data.getNutritionScore() >= 0.8)
-                            {
-                                line += "You're quite satiated.";
-                            } else if (data.getNutritionScore() >= 0.5)
-                            {
-                                line += "You're decently satiated.";
-                            } else
-                            {
-                                line += "You should diversify your diet.";
+                            StringBuilder line = new StringBuilder();
+                            if (data.getNutritionScore() >= 0.8) {
+                                line.append("You're quite satiated.");
+                            } else if (data.getNutritionScore() >= 0.5) {
+                                line.append("You're decently satiated.");
+                            } else {
+                                line.append("You should diversify your diet.");
                             }
 
                             boolean hasNeeded = false;
                             int index = 0;
-                            for (Map.Entry<String, Double> entry : data.getNutritionValueCollection().entrySet())
-                            {
+                            for (Map.Entry<String, Double> entry : data.getNutritionValueCollection().entrySet()) {
                                 String key = entry.getKey();
                                 Double value = entry.getValue();
-                                if (value <= 40.0)
-                                {
-                                    if (!hasNeeded)
-                                    {
+                                if (value <= 40.0) {
+                                    if (!hasNeeded) {
                                         hasNeeded = true;
-                                        line += " You're lacking ";
+                                        line.append(" You're lacking ");
                                     }
-                                    if (index == data.getNutritionValueCollection().size() - 1)
-                                    {
-                                        line += key + ".";
-                                    } else
-                                    {
-                                        line += key + ", ";
+                                    if (index == data.getNutritionValueCollection().size() - 1) {
+                                        line.append(key).append(".");
+                                    } else {
+                                        line.append(key).append(", ");
                                     }
 
                                 }
                                 index++;
                             }
-                            final String message = line;
+                            final String message = line.toString();
                             context.getSource().sendSuccess(() -> Component.literal(message), false);
                             return 1;
                         })
@@ -92,8 +82,7 @@ public class FFNutritionCommands
                                     false);
 
                             int index = 0;
-                            for (Map.Entry<String, Double> entry : data.getNutritionValueCollection().entrySet())
-                            {
+                            for (Map.Entry<String, Double> entry : data.getNutritionValueCollection().entrySet()) {
                                 index += 1;
                                 String key = entry.getKey();
                                 Double value = entry.getValue();
