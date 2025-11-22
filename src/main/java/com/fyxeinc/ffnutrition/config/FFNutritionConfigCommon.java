@@ -41,12 +41,12 @@ public class FFNutritionConfigCommon
             .defineInRange("decayDefault", 0.00083, 0.0, Double.MAX_VALUE);
 
     public static final ModConfigSpec.IntValue MAX_HEALTH = BUILDER
-            .comment("Max health.")
-            .defineInRange("maxHealth", 20, 1, 1024);
+            .comment("Maximum max health when nutrition score is high.")
+            .defineInRange("maxHealth", 20, 2, 1024);
 
-    public static final ModConfigSpec.DoubleValue MIN_HEALTH = BUILDER
+    public static final ModConfigSpec.IntValue MIN_HEALTH = BUILDER
             .comment("Minimum max health even when nutrition score is low.")
-            .defineInRange("minHealth", 6.0, 1.0, Double.MAX_VALUE);
+            .defineInRange("minHealth", 2, 2, 1024);
 
 
 //    public static final ModConfigSpec.ConfigValue<List<? extends String>> ITEM_NUTRITION_CATEGORIES = BUILDER

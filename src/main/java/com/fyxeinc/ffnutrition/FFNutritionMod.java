@@ -78,16 +78,10 @@ public class FFNutritionMod
     private static long calculateMaxHealth(NutritionData data)
     {
         double score = data.getNutritionScore();
-
-        // Make min health at least 1
-        double min = Math.max(1, FFNutritionConfigCommon.MIN_HEALTH.get());
-        // Make max health greater or equal to min health
+        double min = FFNutritionConfigCommon.MIN_HEALTH.get();
         double max = Math.max(min, FFNutritionConfigCommon.MAX_HEALTH.get());
-
-        // FIXME: `min` is not actually used in the calculation
-        long result = Math.round(score * max / 2.0) * 2L;
-        // LOGGER.info("Current max health:{}. (Score:{}, Min:{}, Max:{})", result, score, minHealth, maxHealth);
-        return result;
+        double health = min + (max - min) * score;
+        return Math.round(health / 2.0) * 2L;
     }
 
     public static void server_ReducePlayerHunger(Player player, int amountHunger, int amountSaturation)
