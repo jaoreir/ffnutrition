@@ -157,7 +157,7 @@ public class FFNutritionCommands {
                                 FFNutritionMod.updatePlayerHealth(target);
                                 context.getSource()
                                     .sendSuccess(() -> Component.literal(
-                                        "Set stationation of player: " + target.getName()
+                                        "Set nutrition of player: " + target.getName()
                                             .getString() + " to : " + String.format("%.6f", value)), false);
 
                                 return 1;
