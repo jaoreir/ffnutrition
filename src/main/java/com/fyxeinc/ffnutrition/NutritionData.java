@@ -45,7 +45,7 @@ public class NutritionData implements INBTSerializable<CompoundTag>
 
         for (String entry : FFNutritionItemDataLoader.getNutritionCategories())
         {
-            double categoryScore = FFNutritionConfigCommon.INITIAL_DEFAULT.get();
+            double categoryScore = FFNutritionConfigCommon.INITIAL_SCORE.get();
             nutritionValueCollection.put(entry, categoryScore);
             currentScore += categoryScore;
         }
@@ -279,7 +279,7 @@ public class NutritionData implements INBTSerializable<CompoundTag>
         {
             double value = tag.contains(category)
                     ? tag.getDouble(category)
-                    : FFNutritionConfigCommon.INITIAL_DEFAULT.get();
+                    : FFNutritionConfigCommon.INITIAL_SCORE.get();
 
             value = Math.clamp(value, 0.0, NUTRITION_CATEGORY_VALUE_MAX);
             nutritionValueCollection.put(category, value);

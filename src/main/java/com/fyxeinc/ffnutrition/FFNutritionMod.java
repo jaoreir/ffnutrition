@@ -50,24 +50,14 @@ public class FFNutritionMod
         return entity.getData(NUTRITION_DATA);
     }
 
-    public static void server_DecayNutrition(Player player)
+    public static void updatePlayerHealth(ServerPlayer player)
     {
-        if (!(player instanceof ServerPlayer serverPlayer))
-        {
-            return;
-        }
-
         NutritionData data = getNutritionData(player);
-
-        double defaultDecay = FFNutritionConfigCommon.DECAY_DEFAULT.get();
-
-        //List<Double> categoryDecay = new ArrayList<>(FFNutritionConfig.DECAY_BY_CATEGORY.get()); // TODO
-        data.addToAllCategories(-defaultDecay);
-
         long maxHealth = calculateMaxHealth(data);
-
         AttributeInstance maxHealthAttribute = player.getAttribute(Attributes.MAX_HEALTH);
         maxHealthAttribute.setBaseValue(maxHealth);
+
+        // Clamp player health in case Max Health becomes lower than current player health
         double realMaxHealth = maxHealthAttribute.getValue();
         if (player.getHealth() > realMaxHealth)
         {
@@ -84,31 +74,10 @@ public class FFNutritionMod
         return Math.round(health / 2.0) * 2L;
     }
 
-    public static void server_ReducePlayerHunger(Player player, int amountHunger, int amountSaturation)
-    {
-        if (!(player instanceof ServerPlayer serverPlayer))
-        {
-            return;
-        }
-        FFNutritionMod.LOGGER.info("Hunger was reduced by 1.");
-        serverPlayer.getFoodData().setFoodLevel
-                (
-                        Math.max(0, serverPlayer.getFoodData().getFoodLevel() - amountHunger)
-                );
-        serverPlayer.getFoodData().setSaturation
-                (
-                        Math.max(0, serverPlayer.getFoodData().getSaturationLevel() - amountSaturation)
-                );
-    }
 
     public static void server_SavePlayerData(Player player)
     {
         if (!(player instanceof ServerPlayer serverPlayer))
-        {
-            return;
-        }
-
-        if (player == null)
         {
             return;
         }
@@ -120,11 +89,6 @@ public class FFNutritionMod
     public static void server_LoadPlayerData(Player player)
     {
         if (!(player instanceof ServerPlayer serverPlayer))
-        {
-            return;
-        }
-
-        if (player == null)
         {
             return;
         }

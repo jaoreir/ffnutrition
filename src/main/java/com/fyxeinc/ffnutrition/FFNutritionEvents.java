@@ -2,28 +2,23 @@ package com.fyxeinc.ffnutrition;
 
 import com.fyxeinc.ffnutrition.config.FFNutritionConfigCommon;
 import com.fyxeinc.ffnutrition.data.FFNutritionItemDataLoader;
-import net.minecraft.core.BlockPos;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.food.FoodProperties;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.event.lifecycle.FMLDedicatedServerSetupEvent;
-import net.neoforged.neoforge.common.util.TriState;
 import net.neoforged.neoforge.event.AddReloadListenerEvent;
 import net.neoforged.neoforge.event.OnDatapackSyncEvent;
 import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
 import net.neoforged.neoforge.event.entity.living.LivingEntityUseItemEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
-import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import net.neoforged.neoforge.event.tick.LevelTickEvent;
 
 import java.util.HashMap;
@@ -31,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 
 import static com.fyxeinc.ffnutrition.FFNutritionDataAttachment.NUTRITION_DATA;
+import static com.fyxeinc.ffnutrition.FFNutritionMod.getNutritionData;
 
 /**
  * Handles all NeoForge events for FF Nutrition.
@@ -43,6 +39,7 @@ public class FFNutritionEvents
     private static double[] fallbackItemNutrition;
     private static boolean hasCachedItems = false;
 
+    private static int NutritionTickCurrent = 0;
     private static int HungerTickCurrent = 0;
 
     public static void cacheItemNutritionInfo(boolean force)
@@ -173,41 +170,26 @@ public class FFNutritionEvents
     @SubscribeEvent
     private static void server_OnLevelTickPost(LevelTickEvent.Post event)
     {
-        if (event.getLevel().isClientSide())
+        if (!(event.getLevel() instanceof ServerLevel serverLevel))
         {
             return;
         }
-
-        boolean reduceHunger = false;
-        HungerTickCurrent += 1;
-        if (HungerTickCurrent > FFNutritionConfigCommon.HUNGER_DECAY_TICKS.get())
+        if (FFNutritionConfigCommon.USE_NUTRITION_DECAY.get())
         {
-            HungerTickCurrent = 0;
-            reduceHunger = true;
-
-            //FFNutritionMod.LOGGER.info("Hunger was Ticked.");
-        }
-
-        if (FFNutritionConfigCommon.USE_HUNGER_DECAY.get() == false)
-        {
-            reduceHunger = false;
-        }
-
-        int hungerDecayAmount = FFNutritionConfigCommon.HUNGER_DECAY_AMOUNT.get();
-        int saturationDecayAmount = FFNutritionConfigCommon.SATURATION_DECAY_AMOUNT.get();
-        for (Player player : event.getLevel().players())
-        {
-            if (!player.isCreative() || FFNutritionConfigCommon.CREATIVE_DECAY_NUTRITION.get())
+            NutritionTickCurrent += 1;
+            if (NutritionTickCurrent > FFNutritionConfigCommon.NUTRITION_DECAY_TICKS.getAsInt())
             {
-                FFNutritionMod.server_DecayNutrition(player);
+                NutritionTickCurrent = 0;
+                FFNutritionDecay.decayNutrition(serverLevel);
             }
-
-            if (reduceHunger)
+        }
+        if (FFNutritionConfigCommon.USE_HUNGER_DECAY.get())
+        {
+            HungerTickCurrent += 1;
+            if (HungerTickCurrent > FFNutritionConfigCommon.HUNGER_DECAY_TICKS.getAsInt())
             {
-                if (!player.isCreative() || FFNutritionConfigCommon.CREATIVE_DECAY_HUNGER.get())
-                {
-                    FFNutritionMod.server_ReducePlayerHunger(player, hungerDecayAmount, saturationDecayAmount);
-                }
+                HungerTickCurrent = 0;
+                FFNutritionDecay.decayHunger(serverLevel);
             }
         }
     }
@@ -221,6 +203,14 @@ public class FFNutritionEvents
             return;
         }
         FFNutritionMod.server_LoadPlayerData(player);
+    }
+
+    @SubscribeEvent
+    private static void server_OnPlayerLoggedIn(PlayerEvent.PlayerLoggedInEvent event){
+        if(!(event.getEntity() instanceof ServerPlayer player)){
+            return;
+        }
+        FFNutritionMod.updatePlayerHealth(player);
     }
 
     @SubscribeEvent
@@ -257,7 +247,7 @@ public class FFNutritionEvents
         ResourceLocation id = BuiltInRegistries.ITEM.getKey(item);
         String idString = id.toString();
 
-        NutritionData data = FFNutritionMod.getNutritionData(player);
+        NutritionData data = getNutritionData(player);
 
         if (itemNutritionCache.containsKey(item))
         {
